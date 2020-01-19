@@ -1,7 +1,6 @@
 module MAC_Unit();
     input [7:0] Activetion, Weigt;
     input ReducePrecLevel, clk, rstn, en;
-    wire [39:0] Products;
     output reg [55:0] Result;
 
     // Multiplier Part
@@ -14,7 +13,7 @@ module MAC_Unit();
     wire [9:0] wx3, wx2, wx1, wx0;
     reg [3:0] MultMode;             // 0: unsigned mult, 1: signed mult
     always @(*) begin               
-        case (ReducePrecLevel)      
+        case (ReducePrecLevel) begin     
         2'b00: MultMode = 4'b1000;  // full precesion
         2'b01: MultMode = 4'b1010;  // 4bit weigh precesion
         2'b10: MultMode = 4'b1111;  // 2bit weigh precesion
@@ -43,27 +42,80 @@ module MAC_Unit();
     // Second Sum of Products Part
     reg [15:0] sp1, sp0;
     shifter #(.size(12), .shamt(4)) shs1 (fsp32, sp1);
-    signExtender #(.size(12), .extamt(4)) ses2 (fsp10, sp0);
+    signExtender #(.size(12), .extsize(16)) ses2 (fsp10, sp0);
 
     wire [15:0] ssp3210;
     ADDER #(.size(16)) ssum (sp1, sp0, 0, ssp3210);
 
     // Product Register Part (need to choose input according to MODE)
+    reg [39:0] Products;    
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
-            // reset
-        else if (en == 1)
-            // do something
+            Products = 0;
+        else if (en == 1) begin
+            case (ReducePrecLevel) begin      
+                2'b00: Products[15:0] = ssp3210;                // full precesion
+                2'b01: begin
+                    Products[39:28] = fsp32;
+                    Products[11:0] = fsp10;
+                    end                                         // 4bit weigh precesion
+                2'b10: Products = {{wx3}, {wx2}, {wx1}, {wx0}}; // 2bit weigh precesion
+                2'b11: Products = x;
+                defualt: Products = 0;
+            endcase            
+        end
     end
 
-    // Accumulate Register Part
-    // do something
+    // Accumulater Part
+    reg [55:0] newAccum;
+    always @(*) begin
+        case (ReducePrecLevel) begin
+            2'b00: signExtender #(.size(16), .extsize(56)) sigext0 (Products[15:0], newAccum);
+            2'b01: begin
+                signExtender #(.size(12), .extsize(28)) sigext1 (Products[11:0], newAccum[27:0]);
+                signExtender #(.size(12), .extsize(28)) sigext2 (Products[39:28], newAccum[55:28]);
+                end                
+            2'b10: begin
+                signExtender #(.size(10), .extsize(14)) sigext3 (Products[9:0], newAccum[13:0]);
+                signExtender #(.size(10), .extsize(14)) sigext4 (Products[19:10], newAccum[27:14]);
+                signExtender #(.size(10), .extsize(14)) sigext5 (Products[29:20], newAccum[41:28]);
+                signExtender #(.size(10), .extsize(14)) sigext6 (Products[39:30], newAccum[55:42]);
+                end
+            2'b00: signExtender #(.size(40), .extsize(56)) sigext7 (Products, newAccum);
+            default: newAccum = 0;
+        endcase
+    end
+
+    reg [55:0] oldAccum, AccumRes;
+    reg [3:0] CIN;
+    reg [3:0] COUT;
+    assign oldAccum = Result;
+    ADDERc #(14) acc0 (oldAccum[13:0], newAccum[13:0], CIN[0], AccumRes[13:0], COUT[0]);
+    ADDERc #(14) acc1 (oldAccum[27:14], newAccum[27:14], CIN[1], AccumRes[27:14], COUT[1]);
+    ADDERc #(14) acc2 (oldAccum[41:28], newAccum[41:28], CIN[2], AccumRes[41:28], COUT[2]);
+    ADDERc #(14) acc3 (oldAccum[55:42], newAccum[55:42], CIN[3], AccumRes[55:42], COUT[3]);
+    always @(*) begin
+        case(ReducePrecLevel) begin
+            2'b00: CIN = {{COUT[2]}, {COUT[1]}, {COUT[0]}, 1'b0};
+            2'b01: CIN = {{COUT[2]}, 1'b0, {COUT[0]}, 1'b0};
+            2'b10: CIN = 4'b0;
+            2'b11: CIN = 4'b0;
+            default: CIN = 4'b0;
+        endcase
+    end
+
+    always @(posedge clk, negedge rstn) begin
+        if (rstn == 0)
+            Result = 0;
+        else if (en == 1)
+            Result = AccumRes;
+    end
 
 endmodule
 
 module multiplier_8x2();     
     input [7:0] A;          //signed
-    input [1:0] W;          //signed or unsigned ^^ 
+    input [1:0] W;          //signed or unsigned 
     output [9:0] result;
 
     assign result = A*W;
@@ -80,13 +132,13 @@ module shifter();
 
 endmodule
 
-module signExtender();
+module signExtender();      // size bit 신호를 extsize bit 신호로 sign extension
     parameter size = 10;
-    parameter extamt = 2;
+    parameter extsize = 12;
     input [size-1:0] X;
-    output [size-1+extamt:0] O;
+    output [extsize-1:0] O;
 
-    assign O = {extamt{X[size-1]}, X};
+    assign O = {(extsize-size){X[size-1]}, X};
 
 endmodule
 
@@ -100,6 +152,26 @@ module ADDER(op1, op2, cin, res);     // size bit의 두 operand 덧셈만
     genvar i;
     assign C[0] = cin;
     
+    generate
+        for(i=0; i<size; i=i+1) begin
+            fullAdder FA (.a(op1[i]), .b(op2[i]), .ci(C[i]), .s(res[i]), .co(C[i+1]));
+        end
+    endgenerate
+
+endmodule
+
+module ADDERc(op1, op2, cin, res, cout);     // size bit의 두 operand 덧셈만
+    parameter size = 12;
+    input cin = 0;
+    input [size-1:0] op1, op2;
+    output [size-1:0] res;
+    output cout;
+    wire [size:0] C;
+
+    genvar i;
+    assign C[0] = cin;
+    assign cout = C[size];
+
     generate
         for(i=0; i<size; i=i+1) begin
             fullAdder FA (.a(op1[i]), .b(op2[i]), .ci(C[i]), .s(res[i]), .co(C[i+1]));
