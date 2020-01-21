@@ -138,6 +138,19 @@ module multiplier_8x2(
     
 endmodule
 
+module MUX_2(
+    input A, B, sel,
+    output O);
+    
+    wire asp, bs, notsel;
+    
+    not(notsel, sel);
+    nand(asp, A, notsel); 
+    nand(bs, B, sel);
+    nand(O, asp, bs);     
+    
+endmodule
+
 module shifter(I, O);           // O = I<<shamt
     parameter shamt = 2;
     parameter size = 10;
