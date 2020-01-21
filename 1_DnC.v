@@ -121,7 +121,7 @@ module multiplier_8x2(
 
     wire [7:0] W_01A, notA, temp, W_10A;
     assign W_01A = {8{W[0]}} & A;
-    assign notA = !A;
+    assign notA = ~A;
     genvar i;
     for (i=0; i<8; i=i+1) begin
         MUX_2 mx (.A(A[i]), .B(notA[i]), .sel(mode), .O(temp[i]));        
@@ -131,7 +131,7 @@ module multiplier_8x2(
     wire CIN = W[1] & mode;
     wire [8:0] OP1, OP2;
     signExtender #(.size(7), .extsize(9)) op1se (W_01A[7:1], OP1);
-    signExtender #(.size(7), .extsize(9)) op2se (W_10A[7:1], OP2);
+    signExtender #(.size(8), .extsize(9)) op2se (W_10A, OP2);
     wire [8:0] sumres;
     ADDER #(.size(9)) sum (OP1, OP2, CIN, sumres);
     assign Result = {sumres, W_01A[0]};    
