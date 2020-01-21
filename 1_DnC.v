@@ -116,13 +116,25 @@ endmodule
 module multiplier_8x2(
     input [1:0] W,          // signed or unsigned
     input [7:0] A,          // signed
-//    input mode,             // if 1, regards w signed, else unsigned
+    input mode,             // if 1, regards w signed, else unsigned
     output [9:0] Result);     
 
-    wire [7:0] W_01A, W_10A;
-    
+    wire [7:0] W_01A, notA, temp, W_10A;
     assign W_01A = {8{W[0]}} & A;
-    assign Result = {2'b00, W_01A};
+    assign notA = !A;
+    genvar i;
+    for (i=0; i<8; i=i+1) begin
+        MUX_2 mx (.A(A[i]), .B(notA[i]), .sel(mode), .O(temp[i]));        
+    end
+    assign W_10A = {8{W[1]}} & temp;
+
+    wire CIN = W[1] & mode;
+    wire [8:0] OP1, OP2;
+    signExtender #(.size(7), .extsize(9)) op1se (W_01A[7:1], OP1);
+    signExtender #(.size(7), .extsize(9)) op2se (W_10A[7:1], OP2);
+    wire [8:0] sumres;
+    ADDER #(.size(9)) sum (OP1, OP2, CIN, sumres);
+    assign Result = {sumres, W_01A[0]};    
     
 endmodule
 
