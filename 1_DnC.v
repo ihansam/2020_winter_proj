@@ -1,30 +1,30 @@
-module MAC_Unit();
-    input [7:0] Activetion, Weigt;
+module MAC_Unit(Activation, Weight, ReducePrecLevel, clk, rstn, en, Result);
+    input [7:0] Activation, Weight;
     input ReducePrecLevel, clk, rstn, en;
     output reg [55:0] Result;
 
     // Multiplier Part
     wire [1:0] w3, w2, w1, w0;
-    assign w3 = Weigt[7:6];
-    assign w2 = Weigt[5:4];
-    assign w1 = Weigt[3:2];
-    assign w0 = Weigt[1:0];
+    assign w3 = Weight[7:6];
+    assign w2 = Weight[5:4];
+    assign w1 = Weight[3:2];
+    assign w0 = Weight[1:0];
 
     wire [9:0] wx3, wx2, wx1, wx0;
     reg [3:0] MultMode;             // 0: unsigned mult, 1: signed mult
     always @(*) begin               
-        case (ReducePrecLevel) begin     
+        case (ReducePrecLevel)     
         2'b00: MultMode = 4'b1000;  // full precesion
         2'b01: MultMode = 4'b1010;  // 4bit weigh precesion
         2'b10: MultMode = 4'b1111;  // 2bit weigh precesion
         2'b11: MultMode = 4'bxxxx;
-        defualt: MultMode = 4'b0000;
+        default: MultMode = 4'b1000;
         endcase
     end
-    multiplier_8x2 m3 (w3, Activetion, MultMode[3], wx3);
-    multiplier_8x2 m2 (w2, Activetion, MultMode[2], wx2);
-    multiplier_8x2 m1 (w1, Activetion, MultMode[1], wx1);
-    multiplier_8x2 m0 (w0, Activetion, MultMode[0], wx0);
+    multiplier_8x2 m3 (w3, Activation, MultMode[3], wx3);
+    multiplier_8x2 m2 (w2, Activation, MultMode[2], wx2);
+    multiplier_8x2 m1 (w1, Activation, MultMode[1], wx1);
+    multiplier_8x2 m0 (w0, Activation, MultMode[0], wx0);
     
     // First Sum of Products Part
     reg [11:0] fp3, fp2, fp1, fp0;    
@@ -34,10 +34,8 @@ module MAC_Unit();
     signExtender sef0 (wx0, fp0);
 
     wire [11:0] fsp32, fsp10;
-    ADDER fs1 (fp3, fp2, 0, fsp32);
-        defparam fs1.size = 12
-    ADDER fs0 (fp1, fp0, 0, fsp10);
-        defparam fs0.size = 12
+    ADDER #(.size(12)) fs1 (fp3, fp2, 0, fsp32);
+    ADDER #(.size(12)) fs0 (fp1, fp0, 0, fsp10);
     
     // Second Sum of Products Part
     reg [15:0] sp1, sp0;
@@ -53,15 +51,15 @@ module MAC_Unit();
         if (rstn == 0)
             Products = 0;
         else if (en == 1) begin
-            case (ReducePrecLevel) begin      
+            case (ReducePrecLevel)
                 2'b00: Products[15:0] = ssp3210;                // full precesion
                 2'b01: begin
                     Products[39:28] = fsp32;
                     Products[11:0] = fsp10;
                     end                                         // 4bit weigh precesion
                 2'b10: Products = {{wx3}, {wx2}, {wx1}, {wx0}}; // 2bit weigh precesion
-                2'b11: Products = x;
-                defualt: Products = 0;
+                2'b11: Products = 40'bx;
+                default: Products = 40'b0;
             endcase            
         end
     end
@@ -69,24 +67,17 @@ module MAC_Unit();
     // Accumulater Part
     reg [55:0] newAccum;
     always @(*) begin
-        case (ReducePrecLevel) begin
-            2'b00: signExtender #(.size(16), .extsize(56)) sigext0 (Products[15:0], newAccum);
-            2'b01: begin
-                signExtender #(.size(12), .extsize(28)) sigext1 (Products[11:0], newAccum[27:0]);
-                signExtender #(.size(12), .extsize(28)) sigext2 (Products[39:28], newAccum[55:28]);
-                end                
-            2'b10: begin
-                signExtender #(.size(10), .extsize(14)) sigext3 (Products[9:0], newAccum[13:0]);
-                signExtender #(.size(10), .extsize(14)) sigext4 (Products[19:10], newAccum[27:14]);
-                signExtender #(.size(10), .extsize(14)) sigext5 (Products[29:20], newAccum[41:28]);
-                signExtender #(.size(10), .extsize(14)) sigext6 (Products[39:30], newAccum[55:42]);
-                end
-            2'b00: signExtender #(.size(40), .extsize(56)) sigext7 (Products, newAccum);
-            default: newAccum = 0;
+        case (ReducePrecLevel)
+            2'b00: newAccum = {{40{Products[15]}}, {Products[15:0]}};
+            2'b01: newAccum = {{16{Products[39]}}, {Products[39:28]}, {16{Products[11]}}, {Products[11:0]}};            
+            2'b10: newAccum = {{4{Products[39]}}, {Products[39:30]}, {4{Products[29]}}, {Products[29:20]}, {4{Products[19]}}, {Products[19:10]}, {4{Products[9]}}, {Products[9:0]}};
+            2'b11: newAccum = 56'b0;
+            default: newAccum = 56'b0;
         endcase
     end
-
-    reg [55:0] oldAccum, AccumRes;
+    
+    wire [55:0]oldAccum; 
+    reg [55:0] AccumRes;
     reg [3:0] CIN;
     reg [3:0] COUT;
     assign oldAccum = Result;
@@ -95,7 +86,7 @@ module MAC_Unit();
     ADDERc #(14) acc2 (oldAccum[41:28], newAccum[41:28], CIN[2], AccumRes[41:28], COUT[2]);
     ADDERc #(14) acc3 (oldAccum[55:42], newAccum[55:42], CIN[3], AccumRes[55:42], COUT[3]);
     always @(*) begin
-        case(ReducePrecLevel) begin
+        case(ReducePrecLevel)
             2'b00: CIN = {{COUT[2]}, {COUT[1]}, {COUT[0]}, 1'b0};
             2'b01: CIN = {{COUT[2]}, 1'b0, {COUT[0]}, 1'b0};
             2'b10: CIN = 4'b0;
