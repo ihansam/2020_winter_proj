@@ -2,6 +2,7 @@ module MAC_Unit(
     input [7:0] Activation, Weight,
     input [1:0] ReducePrecLevel,
     input clk, rstn, en,
+    output reg [39:0] Products,
     output reg [55:0] Result);
 
     // Multiplier Part
@@ -47,7 +48,6 @@ module MAC_Unit(
     ADDER #(.size(16)) ssum (sp1, sp0, 0, ssp3210);
 
     // Product Register Part (need to choose input according to MODE)
-    reg [39:0] Products;    
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             Products = 0;
