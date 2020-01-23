@@ -153,7 +153,7 @@ module shifter(I, O);           // O = I<<shamt
 
 endmodule
 
-module signExtender(I, O);      // size bit ì‹ í˜¸ Ië¥¼ extsize bit ì‹ í˜¸ Oë¡œ sign extension
+module signExtender(I, O);      // size bit ½ÅÈ£ I¸¦ extsize bit ½ÅÈ£ O·Î sign extension
     parameter size = 10;
     parameter extsize = 12;
     input [size-1:0] I;

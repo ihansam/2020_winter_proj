@@ -1,0 +1,30 @@
+Vivado Simulator 2018.3
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: C:/Xilinx/Vivado/2018.3/bin/unwrapped/win64.o/xelab.exe -wto cde269b227ba4c3881dbe96e83dcdd46 --incr --debug typical --relax --mt 2 -L xil_defaultlib -L unisims_ver -L unimacro_ver -L secureip --snapshot tb_DnC_behav xil_defaultlib.tb_DnC xil_defaultlib.glbl -log elaborate.log 
+Using 2 slave threads.
+Starting static elaboration
+WARNING: [VRFC 10-3091] actual bit length 32 differs from formal bit length 1 for port 'cin' [C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sources_1/new/DnC.v:38]
+WARNING: [VRFC 10-3091] actual bit length 32 differs from formal bit length 1 for port 'cin' [C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sources_1/new/DnC.v:39]
+WARNING: [VRFC 10-3091] actual bit length 32 differs from formal bit length 1 for port 'cin' [C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sources_1/new/DnC.v:47]
+Completed static elaboration
+Starting simulation data flow analysis
+WARNING: [XSIM 43-4100] "C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.sim/sim_1/behav/xsim/glbl.v" Line 6. Module glbl has a timescale but at least one module in design doesn't have timescale.
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module xil_defaultlib.MUX_2
+Compiling module xil_defaultlib.signExtender(size=7,extsize=9)
+Compiling module xil_defaultlib.signExtender(size=8,extsize=9)
+Compiling module xil_defaultlib.fullAdder
+Compiling module xil_defaultlib.ADDER(size=9)
+Compiling module xil_defaultlib.multiplier_8x2_default
+Compiling module xil_defaultlib.shifter
+Compiling module xil_defaultlib.signExtender
+Compiling module xil_defaultlib.ADDER_default
+Compiling module xil_defaultlib.shifter(shamt=4,size=12)
+Compiling module xil_defaultlib.signExtender(size=12,extsize=16)
+Compiling module xil_defaultlib.ADDER(size=16)
+Compiling module xil_defaultlib.ADDERc(size=14)
+Compiling module xil_defaultlib.MAC_Unit
+Compiling module xil_defaultlib.tb_DnC
+Compiling module xil_defaultlib.glbl
+Built simulation snapshot tb_DnC_behav
