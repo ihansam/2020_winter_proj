@@ -1,7 +1,0 @@
-0.6
-2018.3
-Dec  7 2018
-00:33:28
-C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.sim/sim_1/behav/xsim/glbl.v,1544155481,verilog,,,,glbl,,,,,,,,
-C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sim_1/new/tb_DnC.v,1579771124,verilog,,,,tb_DnC,,,,,,,,
-C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sources_1/new/DnC.v,1579765293,verilog,,C:/Data/02 Work/PROJECT/test_multiplier_8x8/test_multiplier_8x8.srcs/sim_1/new/tb_DnC.v,,ADDER;ADDERc;MAC_Unit;MUX_2;fullAdder;multiplier_8x2;shifter;signExtender,,,,,,,,
