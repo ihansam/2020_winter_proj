@@ -46,23 +46,24 @@ module MAC_Unit(
     endgenerate
     assign op1[8] = op1[7];
 
-    wire [8:0] presum = {PRODUCT[15], PRODUCT[15:8]};
+    wire [15:0] prevProduct = PRODUCT;
+    wire [8:0] presum = {prevProduct[15], prevProduct[15:8]};
     generate
-        for(i=0; i<8; i=i+1) begin
+        for(i=0; i<9; i=i+1) begin
             MUX_2 mux(presum[i], 0, done, op2[i]);
         end
     endgenerate
     
     // partial sum part
     // wire [8:0] partsumres;
-    ADDER #(.size(9)) productACCUM (op1, op2, done, partsumres);
+    ADDER #(.size(9)) productACCUM (op1, op2, triger, partsumres);
 
     // partial sum register
-    wire [15:0] dPRODUCT = {partsumres, PRODUCT[6:0]};
+    wire [15:0] dPRODUCT = {partsumres, prevProduct[6:0]};
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             PRODUCT = 0;
-        else if (done==1)
+        else if (done==1 && en == 1)
             PRODUCT = dPRODUCT;
     end
 
@@ -122,9 +123,9 @@ module tb_bitserial();
     wire win;
     wire [7:0] WA;
     wire done, triger;
-    wire [8:0] op1, op2,
-    wire [8:0] partsumres,
-    wire reg [15:0] PRODUCT);    
+    wire [8:0] op1, op2;
+    wire [8:0] ptsum;
+    wire [15:0] PRODUCT;    
 
     MAC_Unit MAC (A, W, clk, rstn, en, Precesion, count, win, WA, done, triger, op1, op2, ptsum, PRODUCT);
 
