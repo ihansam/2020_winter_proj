@@ -1,55 +1,68 @@
-module MAC_UNIT(
-    input [7:0] Activation, Weight,
+module MAC_Unit(
+    input [7:0] Activation, weight,
+    input clk, rstn, en,
     input [1:0] ReducePrecLevel,
-    input clk, rstn,
+    output reg [2:0] count,
+    output Win,
+    output [7:0] WA,
+    output done, triger,
+    output [8:0] op1, op2,
+    output [8:0] partsumres,
     output reg [15:0] PRODUCT);
 
-    reg [2:0] count;
+    // counter part
+    // reg [2:0] count;
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             count = 0;
-        else
+        else if (en == 1) begin
             count = count + 1;
-    end
-    
-    wire ANDIN = Weight[count];
-    wire aw[7:0];
-    integer i;
-    for (i=0; i<8; i=i+1) begin
-        and(aw[i], Activation[i], ANDIN);
+        end
     end
 
-    wire [2:0] clknum = 3'b111>>ReducePrecLevel;
-    reg done;
-    always @(*) begin
-        if (count == clknum)
-            done = 1'b1;
-        else
-            done = 1'b0;
-    end
-        
-    wire [8:0] op1, op2;
-    wire [8:0] result;
-    wire [8:0] awprime;
+    // triger = 1 when last bit of weight enter, done = 1 when partial sum done 
+    assign triger = count[0] & ((count[1]&ReducePrecLevel[0])|(count[2]&count[1])|(ReducePrecLevel[1]&~ReducePrecLevel[0]));
+    assign done = ~count[0] & ((~count[1]&ReducePrecLevel[0])|(~count[2]&~count[1])|(ReducePrecLevel[1]&~ReducePrecLevel[0]));
+
+    // calculate weight bit * Activation
+    // wire Win = weight[count];
+    assign Win = weight[count];
+    // wire [7:0] WA;
+    genvar i;
     for (i=0; i<8; i=i+1) begin
-        not(awprime[i], aw[i]);
+        and(WA[i], Activation[i], Win);
     end
-    
+
+    // partial sum operand decision
+    // wire [8:0] op1, op2;
+    wire [8:0] WAprime;
+    for (i=0; i<8; i=i+1) begin
+        not(WAprime[i], WA[i]);
+    end
     generate
         for(i=0; i<8; i=i+1) begin
-            MUX_2 mux(aw[i], awprime[i], done, op1[i]);
+            MUX_2 mux (WA[i], WAprime[i], triger, op1[i]);
         end
     endgenerate
     assign op1[8] = op1[7];
-    assign op2 = {PRODUCT[15], PRODUCT[15:8]}
 
-    ADDER #(.size(9)) productACCUM (op1, op2, done, result);
-    reg [15:0] dPRODUCT = {result, PRODUCT[6:0]};
+    wire [8:0] presum = {PRODUCT[15], PRODUCT[15:8]};
+    generate
+        for(i=0; i<8; i=i+1) begin
+            MUX_2 mux(presum[i], 0, done, op2[i]);
+        end
+    endgenerate
+    
+    // partial sum part
+    // wire [8:0] partsumres;
+    ADDER #(.size(9)) productACCUM (op1, op2, done, partsumres);
 
-    always @(posedge clk, negedge rstn, count) begin
-        if (rstn == 0 or count == 0)
+    // partial sum register
+    wire [15:0] dPRODUCT = {partsumres, PRODUCT[6:0]};
+    always @(posedge clk, negedge rstn) begin
+        if (rstn == 0)
             PRODUCT = 0;
-        else
+        else if (done==1)
             PRODUCT = dPRODUCT;
     end
 
@@ -100,3 +113,37 @@ module fullAdder(
     or(co, AciorBci, AB);
 
 endmodule
+
+module tb_bitserial();
+    reg [7:0] A, W;
+    reg clk, rstn, en;
+    reg [1:0] Precesion;
+    wire [2:0] count;
+    wire win;
+    wire [7:0] WA;
+    wire done, triger;
+    wire [8:0] op1, op2,
+    wire [8:0] partsumres,
+    wire reg [15:0] PRODUCT);    
+
+    MAC_Unit MAC (A, W, clk, rstn, en, Precesion, count, win, WA, done, triger, op1, op2, ptsum, PRODUCT);
+
+    initial begin
+        #0  clk = 0; rstn = 0; en = 0; Precesion = 2'b00; A = 0; W = 0;
+        #10 rstn = 1;
+        #5  A = 8'b00001011; W = 8'b00001001;
+        #5  en = 1;
+        #5  
+        #70 W = 8'b01010101;
+        #80 W = 8'b10101010;
+        #85 en = 0; Precesion = 2'b01; W = 8'b11011000;
+        #5  en = 1;
+        #75 en = 0; Precesion = 2'b10;
+        #5  en = 1;
+        #75 en = 0;
+    end
+
+    always #5 clk = ~clk;
+
+endmodule
+
