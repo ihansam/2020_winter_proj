@@ -5,7 +5,6 @@ module MAC_UNIT(
     output reg [15:0] PRODUCT);
 
     reg [2:0] count;
-    integer [2:0] clknum = 3'b111>>ReducePrecLevel;
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             count = 0;
@@ -20,6 +19,7 @@ module MAC_UNIT(
         and(aw[i], Activation[i], ANDIN);
     end
 
+    wire [2:0] clknum = 3'b111>>ReducePrecLevel;
     reg done;
     always @(*) begin
         if (count == clknum)
