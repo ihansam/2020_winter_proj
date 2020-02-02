@@ -35,7 +35,7 @@ module MAC_Unit(
 
     // partial sum operand decision
     // wire [8:0] op1, op2;
-    wire [8:0] WAprime;
+    wire [7:0] WAprime;
     for (i=0; i<8; i=i+1) begin
         not(WAprime[i], WA[i]);
     end
@@ -59,7 +59,7 @@ module MAC_Unit(
     ADDER #(.size(9)) productACCUM (op1, op2, triger, partsumres);
 
     // partial sum register
-    wire [15:0] dPRODUCT = {partsumres, prevProduct[6:0]};
+    wire [15:0] dPRODUCT = {partsumres, prevProduct[7:1]};
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             PRODUCT = 0;
