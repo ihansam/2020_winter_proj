@@ -63,7 +63,7 @@ module MAC_Unit(
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             PRODUCT = 0;
-        else if (done==1 && en == 1)
+        else if (en == 1)
             PRODUCT = dPRODUCT;
     end
 
@@ -100,7 +100,6 @@ module ADDER(op1, op2, cin, res);           // without carry out
 
 endmodule
 
-
 module fullAdder(
     input A, B, ci,
     output s, co);
@@ -132,19 +131,15 @@ module tb_bitserial();
     initial begin
         #0  clk = 0; rstn = 0; en = 0; Precesion = 2'b00; A = 0; W = 0;
         #10 rstn = 1;
-        #5  A = 8'b00001011; W = 8'b00001001;
+        #5  A = 8'b01100111; W = 8'b00001010;
         #5  en = 1;
-        #5  
-        #70 W = 8'b01010101;
-        #80 W = 8'b10101010;
-        #85 en = 0; Precesion = 2'b01; W = 8'b11011000;
-        #5  en = 1;
-        #75 en = 0; Precesion = 2'b10;
-        #5  en = 1;
-        #75 en = 0;
+        #75 A = 8'b00111111; W = 8'b11100001;
+        #80 A = 8'b10110100; W = 8'b01000000;
+        #80 A = 8'b10101001; W = 8'b10110101;        
+        #80 A = 8'b10000000; W = 8'b10000000;        
+        #85  en = 0;
     end
 
     always #5 clk = ~clk;
 
 endmodule
-
