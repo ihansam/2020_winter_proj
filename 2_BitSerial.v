@@ -6,9 +6,10 @@ module MAC_Unit(
     output Win,
     output [7:0] WA,
     output done, triger,
-    output [7:0] op1, op2,
-    output [7:0] partsumres,
-    output reg [15:0] PRODUCT);
+    output [8:0] op1, op2,
+    output [8:0] partsumres,
+    output reg [15:0] PRODUCT,
+    output reg [19:0] RESULT);
 
     // counter part
     // reg [2:0] count;
@@ -44,31 +45,39 @@ module MAC_Unit(
             MUX_2 mux (WA[i], WAprime[i], triger, op1[i]);
         end
     endgenerate
-//    assign op1[8] = op1[7];
+    assign op1[8] = op1[7];
 
     wire [15:0] prevProduct = PRODUCT;
-    wire [7:0] presum = prevProduct[15:8];
+    wire [8:0] presum = {prevProduct[15], prevProduct[15:8]};
     generate
-        for(i=0; i<8; i=i+1) begin
+        for(i=0; i<9; i=i+1) begin
             MUX_2 mux(presum[i], 0, done, op2[i]);
         end
     endgenerate
     
     // partial sum part
     // wire [8:0] partsumres;
-    ADDER #(.size(8)) productACCUM (op1, op2, triger, partsumres);
+    ADDER #(.size(9)) productACCUM (op1, op2, triger, partsumres);
 
     // partial sum register
-    wire top;
-    wire tmp = Activation[7]^weight[7];
-    MUX_2 topchoose(Activation[7], tmp, triger, top);
-    
-    wire [15:0] dPRODUCT = {top, partsumres, prevProduct[7:1]};
+    wire [15:0] dPRODUCT = {partsumres, prevProduct[7:1]};
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             PRODUCT = 0;
         else if (en == 1)
             PRODUCT = dPRODUCT;
+    end
+
+    // accumulator part
+    wire [19:0] accold, accnew, accumres;
+    assign accold = RESULT;
+    assign accnew = {{4{PRODUCT[15]}}, PRODUCT};
+    assign accumres = accold + accnew;
+    always @(posedge done, negedge rstn) begin
+        if(rstn == 0)
+            RESULT = 0;
+        else if (en == 1)
+            RESULT = accumres;
     end
 
 endmodule
@@ -118,6 +127,7 @@ module fullAdder(
 
 endmodule
 
+
 module tb_bitserial();
     reg [7:0] A, W;
     reg clk, rstn, en;
@@ -126,11 +136,12 @@ module tb_bitserial();
     wire win;
     wire [7:0] WA;
     wire done, triger;
-    wire [7:0] op1, op2;
-    wire [7:0] ptsum;
-    wire [15:0] PRODUCT;    
+    wire [8:0] op1, op2;
+    wire [8:0] ptsum;
+    wire [15:0] PRODUCT;
+    wire [19:0] ACCUM;    
 
-    MAC_Unit MAC (A, W, clk, rstn, en, Precesion, count, win, WA, done, triger, op1, op2, ptsum, PRODUCT);
+    MAC_Unit MAC (A, W, clk, rstn, en, Precesion, count, win, WA, done, triger, op1, op2, ptsum, PRODUCT, ACCUM);
 
     initial begin
         #0  clk = 0; rstn = 0; en = 0; Precesion = 2'b00; A = 0; W = 0;
