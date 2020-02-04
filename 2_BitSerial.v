@@ -3,11 +3,6 @@ module MAC_Unit(
     input clk, rstn, en,
     input [1:0] ReducePrecLevel,
     output reg [2:0] count,
-    output Win,
-    output [7:0] WA,
-    output done, trigger,
-    output [8:0] op1, op2,
-    output [8:0] partsumres,
     output reg [15:0] PRODUCT,
     output reg [19:0] RESULT);
 
@@ -26,16 +21,16 @@ module MAC_Unit(
     assign done = ~count[0] & ((~count[1]&ReducePrecLevel[0])|(~count[2]&~count[1])|(ReducePrecLevel[1]&~ReducePrecLevel[0]));
 
     // calculate weight bit * Activation
-    // wire Win = weight[count];
+    wire Win = weight[count];
     assign Win = weight[count];
-    // wire [7:0] WA;
+    wire [7:0] WA;
     genvar i;
     for (i=0; i<8; i=i+1) begin
         and(WA[i], Activation[i], Win);
     end
 
     // partial sum operand decision
-    // wire [8:0] op1, op2;
+    wire [8:0] op1, op2;
     wire [7:0] WAprime;
     for (i=0; i<8; i=i+1) begin
         not(WAprime[i], WA[i]);
@@ -56,7 +51,7 @@ module MAC_Unit(
     endgenerate
     
     // partial sum part
-    // wire [8:0] partsumres;
+    wire [8:0] partsumres;
     ADDER #(.size(9)) productACCUM (op1, op2, trigger, partsumres);
 
     // partial sum register
@@ -156,17 +151,11 @@ module fullAdder(
 
 endmodule
 
-
 module tb_bitserial();
     reg [7:0] A, W;
     reg clk, rstn, en;
     reg [1:0] Precision;
     wire [2:0] count;
-    wire win;
-    wire [7:0] WA;
-    wire done, trigger;
-    wire [8:0] op1, op2;
-    wire [8:0] ptsum;
     wire [15:0] PRODUCT;
     wire [19:0] ACCUM;
     wire [15:4] PRODUCT4b = PRODUCT[15:4];
@@ -174,7 +163,7 @@ module tb_bitserial();
     wire [15:6] PRODUCT2b = PRODUCT[15:6];
     wire [19:6] ACC2b = ACCUM[19:6];    
 
-    MAC_Unit MAC (A, W, clk, rstn, en, Precision, count, win, WA, done, trigger, op1, op2, ptsum, PRODUCT, ACCUM);
+    MAC_Unit MAC (A, W, clk, rstn, en, Precision, count, PRODUCT, ACCUM);
 
     initial begin
         #0  clk = 0; rstn = 0; en = 0; Precision = 2'b00; A = 0; W = 0;
