@@ -3,22 +3,24 @@ module tb_DnC;
     reg [7:0] A, W;
     reg [1:0] PrecLevel;
     reg clk, rstn, en;
-    wire [39:0] Products;
+
+    wire [15:0] Product00 = Products[15:0];
     wire [55:0] Result00;
     
-    wire [15:0] Product00 = Products[15:0];
     wire [11:0] Product11 = Products[39:28];
-    wire [11:0] Product10 = Products[11:0];
-    wire [9:0] Product23 = Products[39:30];
-    wire [9:0] Product22 = Products[29:20];
-    wire [9:0] Product21 = Products[19:10];
-    wire [9:0] Product20 = Products[9:0];
     wire [27:0] Result11 = Result00[55:28];
+    wire [11:0] Product10 = Products[11:0];
     wire [27:0] Result10 = Result00[27:0];
+    wire [9:0] Product23 = Products[39:30];
     wire [13:0] Result23 = Result00[55:42];
+    wire [9:0] Product22 = Products[29:20];
     wire [13:0] Result22 = Result00[41:28];
+    wire [9:0] Product21 = Products[19:10];
     wire [13:0] Result21 = Result00[27:14];
+    wire [9:0] Product20 = Products[9:0];
     wire [13:0] Result20 = Result00[13:0];
+    
+    wire [39:0] Products;
         
     MAC_Unit MAC(A, W, PrecLevel,clk, rstn, en,
     Products, Result00);
