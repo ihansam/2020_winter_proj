@@ -7,7 +7,6 @@ module MAC_Unit(
     output reg [19:0] RESULT);
 
     // counter part
-    // reg [2:0] count;
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             count = 0;
@@ -15,48 +14,38 @@ module MAC_Unit(
             count = count + 1;
         end
     end
-
-    // trigger = 1 when last bit of weight enter, done = 1 when partial sum done 
+    // logic minimized count signal (triger = 1 when last weight bit enter, done = 1 when first weight bit enter)
     assign trigger = count[0] & ((count[1]&ReducePrecLevel[0])|(count[2]&count[1])|(ReducePrecLevel[1]&~ReducePrecLevel[0]));
     assign done = ~count[0] & ((~count[1]&ReducePrecLevel[0])|(~count[2]&~count[1])|(ReducePrecLevel[1]&~ReducePrecLevel[0]));
 
-    // calculate weight bit * Activation
+    // calculate partial product
     wire Win = weight[count];
-    assign Win = weight[count];
-    wire [7:0] WA;
-    genvar i;
-    for (i=0; i<8; i=i+1) begin
-        and(WA[i], Activation[i], Win);
-    end
+    wire [7:0] WA = {8{Win}} & Activation;
 
-    // partial sum operand decision
+    // partial products summation
     wire [8:0] op1, op2;
     wire [7:0] WAprime = ~WA;
-/*    
-    for (i=0; i<8; i=i+1) begin
-        not(WAprime[i], WA[i]);
-    end*/
-    generate
+    genvar i;
+    generate                    // op1: new partial product WA, if last PP, ~WA 
         for(i=0; i<8; i=i+1) begin
             MUX_2 mux (WA[i], WAprime[i], trigger, op1[i]);
         end
     endgenerate
-    assign op1[8] = op1[7];
+    assign op1[8] = op1[7];     // sign extention
 
     wire [15:0] prevProduct = PRODUCT;
     wire [8:0] presum = {prevProduct[15], prevProduct[15:8]};
-    generate
+    generate                    // op2: accumulated partial products, if first PP, 0
         for(i=0; i<9; i=i+1) begin
             MUX_2 mux(presum[i], 0, done, op2[i]);
         end
     endgenerate
     
-    // partial sum part
     wire [8:0] partsumres;
     ADDER #(.size(9)) productACCUM (op1, op2, trigger, partsumres);
 
-    // partial sum register
-    wire [15:0] dPRODUCT = {partsumres, prevProduct[7:1]};
+    // product result register
+    wire [15:0] dPRODUCT = {partsumres, prevProduct[7:1]};  // 1bit shift right
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
             PRODUCT = 0;
@@ -64,20 +53,20 @@ module MAC_Unit(
             PRODUCT = dPRODUCT;
     end
 
-    // accumulator part
+    // accumulator part (accumres = accold + accnew)
     wire [19:0] accold, accnew, accumres;
     assign accold = RESULT;
     assign accnew = {{4{PRODUCT[15]}}, PRODUCT};
-    //accumres = accold + accnew
     wire [2:1] CIN;
     wire [2:0] COUT;
-    ADDERc #(4) acc0 (accold[3:0], accnew[3:0], 0, accumres[3:0], COUT[0]);
-    ADDERc #(2) acc1 (accold[5:4], accnew[5:4], CIN[1], accumres[5:4], COUT[1]);
-    ADDERc #(14) acc2 (accold[19:6], accnew[19:6], CIN[2], accumres[19:6], COUT[2]);
-    
-    MUX_2 cin2control (COUT[1], 0, ReducePrecLevel[1], CIN[2]);
+    MUX_2 cin2control (COUT[1], 0, ReducePrecLevel[1], CIN[2]);     // decide adder carry in
     MUX_2 cin1control (COUT[0], 0, ReducePrecLevel[0], CIN[1]);
-       
+
+    ADDERc #(14) acc2 (accold[19:6], accnew[19:6], CIN[2], accumres[19:6], COUT[2]);
+    ADDERc #(2) acc1 (accold[5:4], accnew[5:4], CIN[1], accumres[5:4], COUT[1]);
+    ADDERc #(4) acc0 (accold[3:0], accnew[3:0], 0, accumres[3:0], COUT[0]);
+        
+    // accumulator register, update whenever product calculate done
     always @(negedge done, negedge rstn) begin
         if(rstn == 0)
             RESULT = 0;
