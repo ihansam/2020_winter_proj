@@ -1,5 +1,3 @@
-// NOT WORKING //
-
 module MAC_Unit(
     input [7:0] Activation, weight,
     input clk, rstn, en,
@@ -101,7 +99,7 @@ module ADDERc(op1, op2, cin, res, cout);     // with carry out
     wire [size:0] C;
 
     assign C = op1 + op2 + cin;
-    assign cout = C[size];
     assign res = C[size-1:0];
+    assign cout = C[size];
 
 endmodule
