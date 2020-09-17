@@ -54,17 +54,17 @@ module MAC_Unit(
     // Product Register Part (choose input according to ReducePrecLevel)
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
-            Products = 0;
+            Products <= 0;
         else if (en == 1) begin
             case (ReducePrecLevel)
-                2'b00: Products[15:0] = ssp3210;                // full precesion
+                2'b00: Products[15:0] <= ssp3210;                // full precesion
                 2'b01: begin                                    // 4bit weigh precesion
-                    Products[39:28] = fsp32;
-                    Products[11:0] = fsp10;
+                    Products[39:28] <= fsp32;
+                    Products[11:0] <= fsp10;
                     end                                         
-                2'b10: Products = {{wx3}, {wx2}, {wx1}, {wx0}}; // 2bit weigh precesion
-                2'b11: Products = 40'bx;
-                default: Products = 40'b0;
+                2'b10: Products <= {{wx3}, {wx2}, {wx1}, {wx0}}; // 2bit weigh precesion
+                2'b11: Products <= 40'bx;
+                default: Products <= 40'b0;
             endcase
         end
     end
@@ -81,7 +81,7 @@ module MAC_Unit(
         endcase
     end
     
-   wire [55:0] oldAccum; 
+	wire [55:0] oldAccum; 
     wire [55:0] AccumRes;
     reg [3:0] CIN;
     wire [3:0] COUT;
@@ -105,9 +105,9 @@ module MAC_Unit(
     // Register
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
-            Result = 0;
+            Result <= 0;
         else if (en == 1)
-            Result = AccumRes;
+            Result <= AccumRes;
     end
 
 endmodule

@@ -49,9 +49,9 @@ module MAC_Unit(
     wire [15:0] dPRODUCT = {partsumres, prevProduct[7:1]};  // 1bit shift right
     always @(posedge clk, negedge rstn) begin
         if (rstn == 0)
-            PRODUCT = 0;
+            PRODUCT <= 0;
         else if (en == 1)
-            PRODUCT = dPRODUCT;
+            PRODUCT <= dPRODUCT;
     end
 
     // accumulator part (accumres = accold + accnew)
@@ -70,9 +70,9 @@ module MAC_Unit(
     // accumulator register, update whenever product calculate done
     always @(negedge done, negedge rstn) begin
         if(rstn == 0)
-            RESULT = 0;
+            RESULT <= 0;
         else if (en == 1)
-            RESULT = accumres;
+            RESULT <= accumres;
     end
 
 endmodule
